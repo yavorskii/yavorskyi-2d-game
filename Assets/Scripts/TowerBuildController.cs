@@ -4,13 +4,20 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
+[System.Serializable]
+public class TowerBuildOption
+{
+    public TowerData towerData;
+    public GameObject towerPrefab;
+}
+
 public class TowerBuildController : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private GameObject towerPrefab;
+    [SerializeField] private List<TowerBuildOption> buildOptions = new();
     [SerializeField] private GameEconomy economy;
     [SerializeField] private WaypointPath path;
-    [SerializeField] private int towerCost = 100;
+    [SerializeField] private int selectedOptionIndex;
     [SerializeField] private Vector2 gridOrigin = new(-7f, -4f);
     [SerializeField] private Vector2Int gridSize = new(14, 8);
     [SerializeField] private float cellSize = 1f;
@@ -33,6 +40,8 @@ public class TowerBuildController : MonoBehaviour
 
     private void Update()
     {
+        HandleSelectionInput();
+
         if (IsBuildClickPressed())
         {
             TryBuildFromMouse();
@@ -50,9 +59,16 @@ public class TowerBuildController : MonoBehaviour
 
     private void TryBuildFromMouse()
     {
-        if (mainCamera == null || towerPrefab == null || economy == null)
+        if (mainCamera == null || economy == null)
         {
-            Debug.LogError("TowerBuildController: Assign mainCamera, towerPrefab and economy.");
+            Debug.LogError("TowerBuildController: Assign mainCamera and economy.");
+            return;
+        }
+
+        TowerBuildOption option = GetSelectedOption();
+        if (option == null || option.towerData == null || option.towerPrefab == null)
+        {
+            Debug.LogError("TowerBuildController: Selected build option is invalid.");
             return;
         }
 
@@ -78,15 +94,57 @@ public class TowerBuildController : MonoBehaviour
             return;
         }
 
-        if (!economy.TrySpendGold(towerCost))
+        if (!economy.TrySpendGold(option.towerData.cost))
         {
             Debug.Log("Not enough gold.");
             return;
         }
 
         Vector3 buildPosition = CellToWorld(cell);
-        Instantiate(towerPrefab, buildPosition, Quaternion.identity);
+        Instantiate(option.towerPrefab, buildPosition, Quaternion.identity);
         occupiedCells.Add(cell);
+    }
+
+    private TowerBuildOption GetSelectedOption()
+    {
+        if (buildOptions == null || buildOptions.Count == 0)
+        {
+            return null;
+        }
+
+        if (selectedOptionIndex < 0 || selectedOptionIndex >= buildOptions.Count)
+        {
+            selectedOptionIndex = 0;
+        }
+
+        return buildOptions[selectedOptionIndex];
+    }
+
+    private void HandleSelectionInput()
+    {
+#if ENABLE_INPUT_SYSTEM
+        if (Keyboard.current == null || buildOptions == null || buildOptions.Count == 0)
+        {
+            return;
+        }
+
+        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+        {
+            selectedOptionIndex = Mathf.Clamp(0, 0, buildOptions.Count - 1);
+        }
+        else if (Keyboard.current.digit2Key.wasPressedThisFrame)
+        {
+            selectedOptionIndex = Mathf.Clamp(1, 0, buildOptions.Count - 1);
+        }
+        else if (Keyboard.current.digit3Key.wasPressedThisFrame)
+        {
+            selectedOptionIndex = Mathf.Clamp(2, 0, buildOptions.Count - 1);
+        }
+        else if (Keyboard.current.digit4Key.wasPressedThisFrame)
+        {
+            selectedOptionIndex = Mathf.Clamp(3, 0, buildOptions.Count - 1);
+        }
+#endif
     }
 
     private Vector3 GetMouseScreenPosition()

@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2859813343426970475}
   - component: {fileID: 6903904892950042617}
-  - component: {fileID: 6546314859074245082}
+  - component: {fileID: 2430960325678774058}
   m_Layer: 0
-  m_Name: ArcherTower
+  m_Name: CannonTower
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -92,7 +92,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!114 &6546314859074245082
+--- !u!114 &2430960325678774058
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -104,4 +104,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0a068f40720d9c988f4f30ef20b06ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TowerCombat
-  towerData: {fileID: 11400000, guid: 8ad131ef23b683a6fb794fb4d0566aac, type: 2}
+  towerData: {fileID: 11400000, guid: 03fabd8ac34b294db8c2d393a00a91d0, type: 2}

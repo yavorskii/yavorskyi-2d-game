@@ -9,6 +9,7 @@ public class HudController : MonoBehaviour
     [SerializeField] private TMP_Text goldText;
     [SerializeField] private TMP_Text baseHpText;
     [SerializeField] private TMP_Text roundText;
+    [SerializeField] private TMP_Text attackBudgetText;
 
     private void OnEnable()
     {
@@ -25,6 +26,7 @@ public class HudController : MonoBehaviour
         if (enemySpawner != null)
         {
             enemySpawner.RoundChanged += UpdateRoundText;
+            enemySpawner.AttackBudgetChanged += UpdateAttackBudgetText;
         }
 
         RefreshAll();
@@ -45,6 +47,7 @@ public class HudController : MonoBehaviour
         if (enemySpawner != null)
         {
             enemySpawner.RoundChanged -= UpdateRoundText;
+            enemySpawner.AttackBudgetChanged -= UpdateAttackBudgetText;
         }
     }
 
@@ -64,6 +67,7 @@ public class HudController : MonoBehaviour
         {
             int currentRound = Mathf.Max(1, enemySpawner.CurrentRound);
             UpdateRoundText(currentRound, enemySpawner.TotalRounds);
+            UpdateAttackBudgetText(enemySpawner.CurrentAttackBudget);
         }
     }
 
@@ -88,6 +92,14 @@ public class HudController : MonoBehaviour
         if (roundText != null)
         {
             roundText.text = $"Round: {currentRound}/{totalRounds}";
+        }
+    }
+
+    private void UpdateAttackBudgetText(int budget)
+    {
+        if (attackBudgetText != null)
+        {
+            attackBudgetText.text = $"Attack Budget: {budget}";
         }
     }
 }
