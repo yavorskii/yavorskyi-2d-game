@@ -27,18 +27,17 @@ public class TowerCombat : MonoBehaviour
             return;
         }
 
-        if (towerData.towerType == TowerType.Mage)
+        ProjectilePool pool = ProjectilePool.Instance;
+        if (pool == null)
         {
-            ApplyMageAttack(target.transform.position);
+            ApplyInstantFallback(target);
+            float fallbackRate = Mathf.Max(0.01f, towerData.attacksPerSecond);
+            attackCooldown = 1f / fallbackRate;
+            return;
         }
-        else if (towerData.towerType == TowerType.Freezer)
-        {
-            ApplyFreezerAttack(target);
-        }
-        else
-        {
-            target.Health.TakeDamage(towerData.damage);
-        }
+
+        Projectile projectile = pool.GetProjectile();
+        projectile.Launch(transform.position, target, towerData);
 
         float attacksPerSecond = Mathf.Max(0.01f, towerData.attacksPerSecond);
         attackCooldown = 1f / attacksPerSecond;
@@ -50,11 +49,9 @@ public class TowerCombat : MonoBehaviour
         float bestProgress = float.MinValue;
         Vector3 towerPosition = transform.position;
         float range = towerData.range;
-        EnemyMover[] enemies = FindObjectsByType<EnemyMover>(FindObjectsSortMode.None);
 
-        for (int i = 0; i < enemies.Length; i++)
+        foreach (EnemyMover enemy in EnemyMover.ActiveEnemies)
         {
-            EnemyMover enemy = enemies[i];
             if (enemy == null || enemy.Health == null)
             {
                 continue;
@@ -76,31 +73,36 @@ public class TowerCombat : MonoBehaviour
         return bestTarget;
     }
 
-    private void ApplyMageAttack(Vector3 impactPosition)
+    private void ApplyInstantFallback(EnemyMover target)
     {
-        float splashRadius = Mathf.Max(0f, towerData.splashRadius);
-        EnemyMover[] enemies = FindObjectsByType<EnemyMover>(FindObjectsSortMode.None);
-
-        for (int i = 0; i < enemies.Length; i++)
+        if (towerData.towerType == TowerType.Mage)
         {
-            EnemyMover enemy = enemies[i];
-            if (enemy == null || enemy.Health == null)
+            float splashRadius = Mathf.Max(0f, towerData.splashRadius);
+            foreach (EnemyMover enemy in EnemyMover.ActiveEnemies)
             {
-                continue;
+                if (enemy == null || enemy.Health == null)
+                {
+                    continue;
+                }
+
+                float distanceToImpact = Vector3.Distance(target.transform.position, enemy.transform.position);
+                if (distanceToImpact <= splashRadius)
+                {
+                    enemy.Health.TakeDamage(towerData.damage);
+                }
             }
 
-            float distanceToImpact = Vector3.Distance(impactPosition, enemy.transform.position);
-            if (distanceToImpact <= splashRadius)
-            {
-                enemy.Health.TakeDamage(towerData.damage);
-            }
+            return;
         }
-    }
 
-    private void ApplyFreezerAttack(EnemyMover target)
-    {
+        if (towerData.towerType == TowerType.Freezer)
+        {
+            target.Health.TakeDamage(towerData.damage);
+            target.ApplySlow(towerData.slowMultiplier, towerData.slowDuration);
+            return;
+        }
+
         target.Health.TakeDamage(towerData.damage);
-        target.ApplySlow(towerData.slowMultiplier, towerData.slowDuration);
     }
 
     private void OnDrawGizmosSelected()

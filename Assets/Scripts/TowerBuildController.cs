@@ -16,6 +16,7 @@ public class TowerBuildController : MonoBehaviour
     [SerializeField] private Camera mainCamera;
     [SerializeField] private List<TowerBuildOption> buildOptions = new();
     [SerializeField] private GameEconomy economy;
+    [SerializeField] private EnemySpawner enemySpawner;
     [SerializeField] private WaypointPath path;
     [SerializeField] private int selectedOptionIndex;
     [SerializeField] private Vector2 gridOrigin = new(-7f, -4f);
@@ -59,6 +60,11 @@ public class TowerBuildController : MonoBehaviour
 
     private void TryBuildFromMouse()
     {
+        if (enemySpawner != null && enemySpawner.CurrentPhase != RoundPhase.Preparation)
+        {
+            return;
+        }
+
         if (mainCamera == null || economy == null)
         {
             Debug.LogError("TowerBuildController: Assign mainCamera and economy.");

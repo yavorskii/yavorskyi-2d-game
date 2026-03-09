@@ -15,6 +15,7 @@ public class TowerData : ScriptableObject
     public int cost = 100;
     public float range = 2.5f;
     public float attacksPerSecond = 1f;
+    public float projectileSpeed = 10f;
     public int damage = 1;
     public float splashRadius = 0f;
     public float slowMultiplier = 0.7f;

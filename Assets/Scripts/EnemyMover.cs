@@ -14,6 +14,7 @@ public class EnemyMover : MonoBehaviour
 
     private WaypointPath path;
     private BaseHealth baseHealth;
+    private EnemyPool enemyPool;
     private int targetWaypointIndex;
     private float baseMoveSpeed;
     private float currentMoveSpeed;
@@ -36,15 +37,21 @@ public class EnemyMover : MonoBehaviour
         ActiveEnemies.Remove(this);
     }
 
-    public void Setup(WaypointPath waypointPath, BaseHealth targetBase, EnemyData data, GameEconomy economy)
+    public void Setup(
+        WaypointPath waypointPath,
+        BaseHealth targetBase,
+        EnemyData data,
+        GameEconomy economy,
+        EnemyPool pool)
     {
         path = waypointPath;
         baseHealth = targetBase;
+        enemyPool = pool;
         targetWaypointIndex = 0;
         baseMoveSpeed = data != null ? Mathf.Max(0.1f, data.moveSpeed) : moveSpeed;
         currentMoveSpeed = baseMoveSpeed;
         slowTimer = 0f;
-        ImmuneToSlow = data != null && data.immuneToSlow;
+        ImmuneToSlow = data != null && (data.immuneToSlow || data.enemyType == EnemyType.Ghost);
 
         if (path == null || path.Waypoints.Count == 0)
         {
@@ -59,6 +66,18 @@ public class EnemyMover : MonoBehaviour
         }
 
         transform.position = path.Waypoints[0].position;
+    }
+
+    public void Despawn()
+    {
+        if (enemyPool != null)
+        {
+            enemyPool.ReleaseEnemy(this);
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
     }
 
     public void ApplySlow(float slowMultiplier, float duration)
@@ -112,7 +131,7 @@ public class EnemyMover : MonoBehaviour
                     baseHealth.TakeDamage(damageToBase);
                 }
 
-                Destroy(gameObject);
+                Despawn();
             }
         }
     }

@@ -7,10 +7,12 @@ public class EnemyHealth : MonoBehaviour
 
     private int currentHealth;
     private GameEconomy economy;
+    private EnemyMover owner;
 
     private void Awake()
     {
         currentHealth = maxHealth;
+        owner = GetComponent<EnemyMover>();
     }
 
     public void SetupFromData(EnemyData data, GameEconomy gameEconomy)
@@ -41,7 +43,14 @@ public class EnemyHealth : MonoBehaviour
                 economy.AddGold(rewardGold);
             }
 
-            Destroy(gameObject);
+            if (owner != null)
+            {
+                owner.Despawn();
+            }
+            else
+            {
+                gameObject.SetActive(false);
+            }
         }
     }
 }

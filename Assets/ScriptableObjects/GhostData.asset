@@ -17,4 +17,4 @@ MonoBehaviour:
   moveSpeed: 2.1
   attackCost: 20
   rewardGold: 10
-  immuneToSlow: 0
+  immuneToSlow: 1
