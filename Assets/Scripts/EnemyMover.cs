@@ -8,7 +8,7 @@ public class EnemyMover : MonoBehaviour
 
     public static readonly List<EnemyMover> ActiveEnemies = new();
 
-    public float PathProgress => targetWaypointIndex;
+    public float PathProgress => ComputePathProgressDistance();
     public EnemyHealth Health { get; private set; }
     public bool ImmuneToSlow { get; private set; }
 
@@ -19,6 +19,8 @@ public class EnemyMover : MonoBehaviour
     private float baseMoveSpeed;
     private float currentMoveSpeed;
     private float slowTimer;
+    private float[] cumulativePathDistances;
+    private float totalPathLength;
 
     private void Awake()
     {
@@ -60,12 +62,15 @@ public class EnemyMover : MonoBehaviour
             return;
         }
 
+        BuildPathDistanceCache(path);
+
         if (Health != null)
         {
             Health.SetupFromData(data, economy);
         }
 
         transform.position = path.Waypoints[0].position;
+        targetWaypointIndex = path.Waypoints.Count > 1 ? 1 : 0;
     }
 
     public void Despawn()
@@ -90,6 +95,72 @@ public class EnemyMover : MonoBehaviour
         float clampedMultiplier = Mathf.Clamp(slowMultiplier, 0.1f, 1f);
         currentMoveSpeed = baseMoveSpeed * clampedMultiplier;
         slowTimer = Mathf.Max(slowTimer, Mathf.Max(0f, duration));
+    }
+
+    private void BuildPathDistanceCache(WaypointPath waypointPath)
+    {
+        int waypointCount = waypointPath != null ? waypointPath.Waypoints.Count : 0;
+        cumulativePathDistances = new float[Mathf.Max(waypointCount, 1)];
+        totalPathLength = 0f;
+
+        for (int i = 1; i < waypointCount; i++)
+        {
+            Transform prev = waypointPath.Waypoints[i - 1];
+            Transform next = waypointPath.Waypoints[i];
+            if (prev == null || next == null)
+            {
+                cumulativePathDistances[i] = totalPathLength;
+                continue;
+            }
+
+            totalPathLength += Vector3.Distance(prev.position, next.position);
+            cumulativePathDistances[i] = totalPathLength;
+        }
+    }
+
+    private float ComputePathProgressDistance()
+    {
+        if (path == null || path.Waypoints.Count == 0)
+        {
+            return 0f;
+        }
+
+        if (targetWaypointIndex <= 0)
+        {
+            return 0f;
+        }
+
+        if (targetWaypointIndex >= path.Waypoints.Count)
+        {
+            return totalPathLength;
+        }
+
+        int previousWaypointIndex = targetWaypointIndex - 1;
+        Transform from = path.Waypoints[previousWaypointIndex];
+        Transform to = path.Waypoints[targetWaypointIndex];
+        if (from == null || to == null)
+        {
+            return previousWaypointIndex < cumulativePathDistances.Length
+                ? cumulativePathDistances[previousWaypointIndex]
+                : 0f;
+        }
+
+        Vector3 segment = to.position - from.position;
+        float segmentLengthSq = segment.sqrMagnitude;
+        if (segmentLengthSq <= Mathf.Epsilon)
+        {
+            return previousWaypointIndex < cumulativePathDistances.Length
+                ? cumulativePathDistances[previousWaypointIndex]
+                : 0f;
+        }
+
+        float segmentT = Mathf.Clamp01(Vector3.Dot(transform.position - from.position, segment) / segmentLengthSq);
+        float segmentLength = Mathf.Sqrt(segmentLengthSq);
+        float distanceBeforeSegment = previousWaypointIndex < cumulativePathDistances.Length
+            ? cumulativePathDistances[previousWaypointIndex]
+            : 0f;
+
+        return distanceBeforeSegment + segmentT * segmentLength;
     }
 
     private void Update()

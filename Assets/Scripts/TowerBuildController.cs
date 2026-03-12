@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -25,6 +26,7 @@ public class TowerBuildController : MonoBehaviour
 
     private readonly HashSet<Vector2Int> occupiedCells = new();
     private readonly HashSet<Vector2Int> blockedPathCells = new();
+    private bool blockBuildUntilMouseRelease;
 
     private void Awake()
     {
@@ -43,16 +45,50 @@ public class TowerBuildController : MonoBehaviour
     {
         HandleSelectionInput();
 
+        if (blockBuildUntilMouseRelease)
+        {
+            if (!IsPrimaryPointerPressed())
+            {
+                blockBuildUntilMouseRelease = false;
+            }
+
+            return;
+        }
+
         if (IsBuildClickPressed())
         {
             TryBuildFromMouse();
         }
     }
 
+    public void BlockBuildUntilPointerRelease()
+    {
+        blockBuildUntilMouseRelease = true;
+    }
+
     private bool IsBuildClickPressed()
     {
 #if ENABLE_INPUT_SYSTEM
-        return Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
+        if (Mouse.current == null)
+        {
+            return false;
+        }
+
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        {
+            return false;
+        }
+
+        return Mouse.current.leftButton.wasPressedThisFrame;
+#else
+        return false;
+#endif
+    }
+
+    private bool IsPrimaryPointerPressed()
+    {
+#if ENABLE_INPUT_SYSTEM
+        return Mouse.current != null && Mouse.current.leftButton.isPressed;
 #else
         return false;
 #endif

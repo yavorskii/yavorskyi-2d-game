@@ -16,6 +16,7 @@ MonoBehaviour:
   cost: 120
   range: 2.7
   attacksPerSecond: 1
+  projectileSpeed: 6
   damage: 1
   splashRadius: 0
   slowMultiplier: 0.5

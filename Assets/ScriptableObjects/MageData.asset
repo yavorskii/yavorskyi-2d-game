@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerData
   towerType: 1
   cost: 150
-  range: 10
-  attacksPerSecond: 5
-  damage: 10
-  splashRadius: 1.2
+  range: 3.2
+  attacksPerSecond: 0.75
+  projectileSpeed: 5.5
+  damage: 9
+  splashRadius: 1.4
   slowMultiplier: 0.7
   slowDuration: 1.5

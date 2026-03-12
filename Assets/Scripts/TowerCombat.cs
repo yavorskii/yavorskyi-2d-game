@@ -1,12 +1,42 @@
 using UnityEngine;
+using System.Collections;
 
 public class TowerCombat : MonoBehaviour
 {
     [SerializeField] private TowerData towerData;
+    [Header("Shoot Animation")]
+    [SerializeField] private Transform visualRoot;
+    [SerializeField] private SpriteRenderer visualSprite;
+    [SerializeField] private float animDuration = 0.12f;
+    [SerializeField] private float animScaleMultiplier = 1.12f;
+    [SerializeField] private Color shootFlashColor = new(1f, 0.92f, 0.72f, 1f);
 
     private float attackCooldown;
+    private Vector3 initialVisualScale;
+    private Color initialVisualColor = Color.white;
+    private Coroutine shootAnimRoutine;
 
     public TowerData TowerData => towerData;
+
+    private void Awake()
+    {
+        if (visualRoot == null)
+        {
+            visualRoot = transform;
+        }
+
+        initialVisualScale = visualRoot.localScale;
+
+        if (visualSprite == null)
+        {
+            visualSprite = GetComponentInChildren<SpriteRenderer>();
+        }
+
+        if (visualSprite != null)
+        {
+            initialVisualColor = visualSprite.color;
+        }
+    }
 
     private void Update()
     {
@@ -26,6 +56,8 @@ public class TowerCombat : MonoBehaviour
         {
             return;
         }
+
+        PlayShootAnimation();
 
         ProjectilePool pool = ProjectilePool.Instance;
         if (pool == null)
@@ -114,5 +146,71 @@ public class TowerCombat : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, towerData.range);
+    }
+
+    private void PlayShootAnimation()
+    {
+        if (towerData == null || towerData.towerType != TowerType.Archer)
+        {
+            return;
+        }
+
+        if (shootAnimRoutine != null)
+        {
+            StopCoroutine(shootAnimRoutine);
+            shootAnimRoutine = null;
+        }
+
+        shootAnimRoutine = StartCoroutine(ShootAnimRoutine());
+    }
+
+    private IEnumerator ShootAnimRoutine()
+    {
+        if (visualRoot == null)
+        {
+            yield break;
+        }
+
+        float duration = Mathf.Max(0.03f, animDuration);
+        float half = duration * 0.5f;
+        Vector3 punchScale = initialVisualScale * Mathf.Max(1f, animScaleMultiplier);
+
+        float t = 0f;
+        while (t < half)
+        {
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / half);
+            visualRoot.localScale = Vector3.Lerp(initialVisualScale, punchScale, k);
+
+            if (visualSprite != null)
+            {
+                visualSprite.color = Color.Lerp(initialVisualColor, shootFlashColor, k);
+            }
+
+            yield return null;
+        }
+
+        t = 0f;
+        while (t < half)
+        {
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / half);
+            visualRoot.localScale = Vector3.Lerp(punchScale, initialVisualScale, k);
+
+            if (visualSprite != null)
+            {
+                visualSprite.color = Color.Lerp(shootFlashColor, initialVisualColor, k);
+            }
+
+            yield return null;
+        }
+
+        visualRoot.localScale = initialVisualScale;
+        if (visualSprite != null)
+        {
+            visualSprite.color = initialVisualColor;
+        }
+
+        shootAnimRoutine = null;
     }
 }

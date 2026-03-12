@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2768274822933991768}
   - component: {fileID: 680837335872824546}
+  - component: {fileID: 5309470468471301121}
   m_Layer: 0
   m_Name: Projectile
   m_TagString: Untagged
@@ -91,3 +92,25 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &5309470468471301121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8517809963611865159}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 419de8b79cd8b58b6a79b7aa190a51e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Projectile
+  launchOffset: 0.45
+  rotateAlongVelocity: 1
+  archerProjectileSprite: {fileID: 21300000, guid: db45674caa9020ec7ba3103111e64b9a, type: 3}
+  mageProjectileSprite: {fileID: 21300000, guid: cce235233084e1e229614448bb71c890, type: 3}
+  freezerProjectileSprite: {fileID: 21300000, guid: 624111fd739108102bd4c4b1cec62811, type: 3}
+  cannonProjectileSprite: {fileID: 21300000, guid: edaf566448a1d274e88e37e30e6049c3, type: 3}
+  archerScale: {x: 0.28, y: 0.28, z: 1}
+  mageScale: {x: 0.22, y: 0.22, z: 1}
+  freezerScale: {x: 0.24, y: 0.24, z: 1}
+  cannonScale: {x: 0.25, y: 0.25, z: 1}

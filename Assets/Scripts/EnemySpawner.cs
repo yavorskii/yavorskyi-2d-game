@@ -23,7 +23,13 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private int totalRounds = 10;
     [SerializeField] private int startAttackBudget = 200;
     [SerializeField] private int attackBudgetGrowthPerRound = 35;
+    [SerializeField] private float earlyRoundBudgetScale = 0.6f;
+    [SerializeField] private float lateRoundBudgetScale = 1f;
     [SerializeField] private int maxEnemiesPerWave = 50;
+    [SerializeField] private int startWaveEnemyLimit = 12;
+    [SerializeField] private int endWaveEnemyLimit = 50;
+    [SerializeField] private float earlyMinSpawnInterval = 1.15f;
+    [SerializeField] private float earlyMaxSpawnInterval = 1.45f;
     [SerializeField] private float minSpawnInterval = 0.8f;
     [SerializeField] private float maxSpawnInterval = 1.2f;
     [SerializeField] private float preparationDuration = 6.0f;
@@ -70,6 +76,25 @@ public class EnemySpawner : MonoBehaviour
         timeBetweenRounds = 2f;
     }
 
+    [ContextMenu("Apply Progressive Wave Preset")]
+    public void ApplyProgressiveWavePreset()
+    {
+        totalRounds = 10;
+        startAttackBudget = 200;
+        attackBudgetGrowthPerRound = 35;
+        earlyRoundBudgetScale = 0.6f;
+        lateRoundBudgetScale = 1f;
+        maxEnemiesPerWave = 50;
+        startWaveEnemyLimit = 12;
+        endWaveEnemyLimit = 50;
+        earlyMinSpawnInterval = 1.15f;
+        earlyMaxSpawnInterval = 1.45f;
+        minSpawnInterval = 0.8f;
+        maxSpawnInterval = 1.2f;
+        preparationDuration = 8f;
+        timeBetweenRounds = 2f;
+    }
+
     private IEnumerator RunRounds()
     {
         if (enemyPrefab == null || enemyPool == null || path == null || baseHealth == null || enemyTypes.Count == 0)
@@ -88,7 +113,9 @@ public class EnemySpawner : MonoBehaviour
 
             CurrentRound = round;
             RoundChanged?.Invoke(CurrentRound, totalRounds);
-            CurrentAttackBudget = startAttackBudget + (round - 1) * attackBudgetGrowthPerRound;
+            int rawBudget = startAttackBudget + (round - 1) * attackBudgetGrowthPerRound;
+            float budgetScale = Mathf.Lerp(earlyRoundBudgetScale, lateRoundBudgetScale, GetRoundProgress01(round));
+            CurrentAttackBudget = Mathf.RoundToInt(rawBudget * budgetScale);
             AttackBudgetChanged?.Invoke(CurrentAttackBudget);
 
             SetPhase(RoundPhase.Preparation);
@@ -147,7 +174,6 @@ public class EnemySpawner : MonoBehaviour
     private List<EnemyData> GenerateWave(int budget)
     {
         List<EnemyData> wave = new();
-        List<EnemyData> affordable = new();
 
         int minCost = int.MaxValue;
         foreach (EnemyData enemy in enemyTypes)
@@ -168,32 +194,21 @@ public class EnemySpawner : MonoBehaviour
             return wave;
         }
 
+        float difficulty01 = totalRounds > 1
+            ? Mathf.Clamp01((CurrentRound - 1f) / (totalRounds - 1f))
+            : 1f;
+        int roundEnemyLimit = GetRoundEnemyLimit();
+
         int safety = 0;
-        while (budget >= minCost && wave.Count < maxEnemiesPerWave && safety < 500)
+        while (budget >= minCost && wave.Count < roundEnemyLimit && safety < 1000)
         {
             safety++;
-            affordable.Clear();
-
-            for (int i = 0; i < enemyTypes.Count; i++)
-            {
-                EnemyData candidate = enemyTypes[i];
-                if (candidate == null)
-                {
-                    continue;
-                }
-
-                if (candidate.attackCost <= budget)
-                {
-                    affordable.Add(candidate);
-                }
-            }
-
-            if (affordable.Count == 0)
+            EnemyData pick = PickEnemyByDifficulty(budget, difficulty01, wave.Count);
+            if (pick == null)
             {
                 break;
             }
 
-            EnemyData pick = affordable[UnityEngine.Random.Range(0, affordable.Count)];
             wave.Add(pick);
             budget -= pick.attackCost;
         }
@@ -201,9 +216,110 @@ public class EnemySpawner : MonoBehaviour
         return wave;
     }
 
+    private EnemyData PickEnemyByDifficulty(int budget, float difficulty01, int waveIndex)
+    {
+        List<EnemyData> affordable = new();
+        float totalWeight = 0f;
+
+        for (int i = 0; i < enemyTypes.Count; i++)
+        {
+            EnemyData candidate = enemyTypes[i];
+            if (candidate == null || candidate.attackCost > budget)
+            {
+                continue;
+            }
+
+            float weight = GetDifficultyWeight(candidate, difficulty01, waveIndex);
+            if (weight <= 0f)
+            {
+                continue;
+            }
+
+            affordable.Add(candidate);
+            totalWeight += weight;
+        }
+
+        if (affordable.Count == 0 || totalWeight <= 0f)
+        {
+            return null;
+        }
+
+        float roll = UnityEngine.Random.value * totalWeight;
+        float cumulative = 0f;
+
+        for (int i = 0; i < affordable.Count; i++)
+        {
+            EnemyData candidate = affordable[i];
+            cumulative += GetDifficultyWeight(candidate, difficulty01, waveIndex);
+            if (roll <= cumulative)
+            {
+                return candidate;
+            }
+        }
+
+        return affordable[affordable.Count - 1];
+    }
+
+    private float GetDifficultyWeight(EnemyData enemy, float difficulty01, int waveIndex)
+    {
+        if (enemy == null)
+        {
+            return 0f;
+        }
+
+        // Early rounds: more weak/fast enemies. Late rounds: more tanks and special units.
+        float weight = enemy.enemyType switch
+        {
+            EnemyType.Goblin => Mathf.Lerp(1.9f, 0.6f, difficulty01),
+            EnemyType.Orc => Mathf.Lerp(0.5f, 1.8f, difficulty01),
+            EnemyType.Ghost => Mathf.Lerp(0.05f, 1.4f, Mathf.InverseLerp(0.25f, 1f, difficulty01)),
+            _ => 1f
+        };
+
+        // Add small variety spikes every few slots.
+        if (waveIndex > 0 && waveIndex % 6 == 0)
+        {
+            weight *= enemy.enemyType == EnemyType.Orc ? 1.2f : 1f;
+        }
+
+        if (waveIndex > 0 && waveIndex % 9 == 0)
+        {
+            weight *= enemy.enemyType == EnemyType.Ghost ? 1.25f : 1f;
+        }
+
+        return Mathf.Max(0f, weight);
+    }
+
+    private int GetRoundEnemyLimit()
+    {
+        int limit = Mathf.RoundToInt(
+            Mathf.Lerp(startWaveEnemyLimit, endWaveEnemyLimit, GetRoundProgress01(CurrentRound)));
+
+        limit = Mathf.Clamp(limit, 1, maxEnemiesPerWave);
+        return limit;
+    }
+
+    private float GetRoundProgress01(int round)
+    {
+        if (totalRounds <= 1)
+        {
+            return 1f;
+        }
+
+        return Mathf.Clamp01((round - 1f) / (totalRounds - 1f));
+    }
+
     private IEnumerator SpawnWave(List<EnemyData> wave)
     {
         IsSpawning = true;
+        float roundProgress = GetRoundProgress01(CurrentRound);
+        float roundMinSpawn = Mathf.Lerp(earlyMinSpawnInterval, minSpawnInterval, roundProgress);
+        float roundMaxSpawn = Mathf.Lerp(earlyMaxSpawnInterval, maxSpawnInterval, roundProgress);
+        if (roundMaxSpawn < roundMinSpawn)
+        {
+            (roundMinSpawn, roundMaxSpawn) = (roundMaxSpawn, roundMinSpawn);
+        }
+
         for (int i = 0; i < wave.Count; i++)
         {
             if (baseHealth == null || baseHealth.CurrentHealth <= 0 || IsGameFinished)
@@ -214,7 +330,7 @@ public class EnemySpawner : MonoBehaviour
             EnemyData enemyData = wave[i];
             EnemyMover enemy = enemyPool.GetEnemy(transform.position, Quaternion.identity);
             enemy.Setup(path, baseHealth, enemyData, economy, enemyPool);
-            float delay = UnityEngine.Random.Range(minSpawnInterval, maxSpawnInterval);
+            float delay = UnityEngine.Random.Range(roundMinSpawn, roundMaxSpawn);
             yield return new WaitForSeconds(delay);
         }
 
