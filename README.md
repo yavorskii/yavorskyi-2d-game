@@ -47,11 +47,11 @@ Optional (audio import troubleshooting):
 
 ```bash
 cd /path/to/WebGLRelease
-python3 -m http.server 8082
+python3 -m http.server 8080
 ```
 
 Open:
-- `http://localhost:8082/index.html`
+- `http://localhost:8080/index.html`
 
 ## Stress Test (Methodology Acceptance)
 
@@ -102,4 +102,3 @@ Detailed checklist:
 
 3. Build menu/tooltip UI flicker:
    - Ensure tooltip UI has `Raycast Target = false` on panel/text.
-
