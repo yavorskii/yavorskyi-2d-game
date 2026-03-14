@@ -45,4 +45,13 @@ public class GameEconomy : MonoBehaviour
         Debug.Log($"Gold: {CurrentGold}");
         GoldChanged?.Invoke(CurrentGold);
     }
+
+    public void SetGoldForTesting(int amount)
+    {
+        int clamped = Mathf.Max(0, amount);
+        startGold = clamped;
+        CurrentGold = clamped;
+        Debug.Log($"Gold (test): {CurrentGold}");
+        GoldChanged?.Invoke(CurrentGold);
+    }
 }

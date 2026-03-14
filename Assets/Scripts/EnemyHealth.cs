@@ -22,6 +22,7 @@ public class EnemyHealth : MonoBehaviour
     private Coroutine hitFlashRoutine;
     private Vector3 baseHealthBarFillScale = Vector3.one;
     private Vector3 baseHealthBarFillLocalPosition = Vector3.zero;
+    private EnemyType currentEnemyType = EnemyType.Goblin;
 
     private void Awake()
     {
@@ -68,6 +69,7 @@ public class EnemyHealth : MonoBehaviour
     {
         if (data != null)
         {
+            currentEnemyType = data.enemyType;
             maxHealth = Mathf.Max(1, data.maxHealth);
             rewardGold = Mathf.Max(0, data.rewardGold);
         }
@@ -86,10 +88,19 @@ public class EnemyHealth : MonoBehaviour
 
         currentHealth = Mathf.Max(0, currentHealth - damage);
         PlayHitFlash();
+        if (GameAudio.Instance != null)
+        {
+            GameAudio.Instance.PlayEnemyHit(currentEnemyType);
+        }
         UpdateHealthBar();
 
         if (currentHealth == 0)
         {
+            if (GameAudio.Instance != null)
+            {
+                GameAudio.Instance.PlayEnemyDeath(currentEnemyType);
+            }
+
             if (economy != null && rewardGold > 0)
             {
                 economy.AddGold(rewardGold);

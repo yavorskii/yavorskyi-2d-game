@@ -58,6 +58,10 @@ public class TowerCombat : MonoBehaviour
         }
 
         PlayShootAnimation();
+        if (GameAudio.Instance != null)
+        {
+            GameAudio.Instance.PlayTowerShoot(towerData.towerType);
+        }
 
         ProjectilePool pool = ProjectilePool.Instance;
         if (pool == null)

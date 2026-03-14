@@ -36,6 +36,8 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private float maxSpawnInterval = 1.2f;
     [SerializeField] private float preparationDuration = 6.0f;
     [SerializeField] private float timeBetweenRounds = 2.0f;
+    [Header("Testing")]
+    [SerializeField] private int extremeTestStartGold = 5000;
 
     public event Action<int, int> RoundChanged;
     public event Action<int> AttackBudgetChanged;
@@ -76,6 +78,36 @@ public class EnemySpawner : MonoBehaviour
         maxSpawnInterval = 1.0f;
         preparationDuration = 10f;
         timeBetweenRounds = 2f;
+    }
+
+    [ContextMenu("Apply Extreme Spawn Test Preset")]
+    public void ApplyExtremeSpawnTestPreset()
+    {
+        totalRounds = 10;
+        orcUnlockRound = 1;
+        ghostUnlockRound = 1;
+
+        startAttackBudget = 1500;
+        attackBudgetGrowthPerRound = 250;
+        earlyRoundBudgetScale = 1f;
+        lateRoundBudgetScale = 1f;
+
+        maxEnemiesPerWave = 80;
+        startWaveEnemyLimit = 80;
+        endWaveEnemyLimit = 80;
+
+        earlyMinSpawnInterval = 0.04f;
+        earlyMaxSpawnInterval = 0.08f;
+        minSpawnInterval = 0.04f;
+        maxSpawnInterval = 0.08f;
+
+        preparationDuration = 25f;
+        timeBetweenRounds = 0.25f;
+
+        if (economy != null)
+        {
+            economy.SetGoldForTesting(extremeTestStartGold);
+        }
     }
 
     [ContextMenu("Apply Progressive Wave Preset")]
@@ -123,7 +155,26 @@ public class EnemySpawner : MonoBehaviour
             AttackBudgetChanged?.Invoke(CurrentAttackBudget);
 
             SetPhase(RoundPhase.Preparation);
-            yield return WaitWithDeathCheck(preparationDuration);
+            float preBattleWarningLeadTime = 4f;
+            float warningDelay = Mathf.Max(0f, preparationDuration - preBattleWarningLeadTime);
+            yield return WaitWithDeathCheck(warningDelay);
+
+            if (baseHealth.CurrentHealth <= 0 || IsGameFinished)
+            {
+                FinishGame(false);
+                yield break;
+            }
+
+            if (GameAudio.Instance != null)
+            {
+                GameAudio.Instance.PlayRoundStart();
+            }
+
+            float remainingPreparation = Mathf.Min(preBattleWarningLeadTime, preparationDuration);
+            if (remainingPreparation > 0f)
+            {
+                yield return WaitWithDeathCheck(remainingPreparation);
+            }
 
             if (baseHealth.CurrentHealth <= 0 || IsGameFinished)
             {

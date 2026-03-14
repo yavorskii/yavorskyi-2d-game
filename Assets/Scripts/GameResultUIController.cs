@@ -9,6 +9,7 @@ public class GameResultUIController : MonoBehaviour
     [SerializeField] private GameObject panelRoot;
     [SerializeField] private TMP_Text resultText;
     [SerializeField] private Button restartButton;
+    [SerializeField] private bool pauseTimeOnGameFinished = true;
 
     private void Awake()
     {
@@ -22,6 +23,8 @@ public class GameResultUIController : MonoBehaviour
 
     private void OnEnable()
     {
+        Time.timeScale = 1f;
+
         if (enemySpawner != null)
         {
             enemySpawner.GameFinished += OnGameFinished;
@@ -51,6 +54,11 @@ public class GameResultUIController : MonoBehaviour
 
     private void OnGameFinished(bool defenderWon)
     {
+        if (pauseTimeOnGameFinished)
+        {
+            Time.timeScale = 0f;
+        }
+
         if (panelRoot != null)
         {
             panelRoot.SetActive(true);
@@ -60,10 +68,16 @@ public class GameResultUIController : MonoBehaviour
         {
             resultText.text = defenderWon ? "Victory" : "Defeat";
         }
+
+        if (!defenderWon && GameAudio.Instance != null)
+        {
+            GameAudio.Instance.PlayDefeat();
+        }
     }
 
     public void RestartLevel()
     {
+        Time.timeScale = 1f;
         Scene current = SceneManager.GetActiveScene();
         SceneManager.LoadScene(current.name);
     }
